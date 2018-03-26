@@ -45,8 +45,12 @@ module Bamboo
         get("result/").auto_expand Result, @http
       end
 
-      def results_for(key)
-        get("result/#{URI.escape key}").auto_expand Result, @http
+      def results_for(key, params = nil)
+        get("result/#{URI.escape key}", params).auto_expand Result, @http
+      end
+
+      def result_for_build(key, params = nil)
+        Result.new get("result/#{URI.escape key}", params).data, @http
       end
 
       def plan_for(key)
@@ -62,6 +66,21 @@ module Bamboo
       def get(what, params = nil)
         @http.get File.join(SERVICE, what), params
       end
+
+      class Issue
+        def initialize(data, http)
+          @data = data
+          @http = http
+        end
+
+        def key
+          @data['key']
+        end
+
+        def summary
+          @data['summary']
+        end
+      end # Issue
 
       class Plan
         def initialize(data, http)
@@ -213,6 +232,16 @@ module Bamboo
             doc = fetch_details("changes.change.files").doc_for('changes')
             doc.auto_expand Change, @http
           )
+        end
+
+        def issues
+            @issues ||= (
+            unless @data['jiraIssues'] && @data['jiraIssues']['issue']
+              @data = @http.get(URI.parse(url), {:expand => 'jiraIssues'}).data
+            end
+
+            @data.fetch('jiraIssues').fetch('issue').map { |e| Issue.new(e, @http) }
+            )
         end
 
         private
