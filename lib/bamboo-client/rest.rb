@@ -61,6 +61,14 @@ module Bamboo
         Queue.new get("queue/").data, @http
       end
 
+      def add_comment(key, author, content)
+        data = {"content" => content}
+
+        path = File.join(SERVICE, "result/#{URI.escape key}/comment")
+
+        @http.post path, data
+      end
+
       private
 
       def get(what, params = nil)
